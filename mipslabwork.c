@@ -23,7 +23,8 @@ void user_isr(void)
 /* Lab-specific initialization goes here */
 void labinit(void)
 {
-  TRISD |= 0xFFE0; // Ställer in bit 11-5 som inputs.
+  //TRISD |= 0xFFE0; // Ställer in bit 11-5 som inputs.
+  TRISDSET = 0xfe0;
 
   int prescaling = 0b111;
   int start = 0b1;
