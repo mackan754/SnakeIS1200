@@ -33,8 +33,9 @@ void gameinit(void)
     // Declare and initialize the initial position for the snake's head
     int initialX = 60; // Example initial x-coordinate for the snake's head
     int initialY = 25; // Example initial y-coordinate for the snake's head
+    snakeDirection = RIGHT;
 
-    snakeLength = 25; // Set the initial length of the snake to 3 segments
+    snakeLength = 30; // Set the initial length of the snake to 3 segments
 
     // Place the fruit in a random position, ensuring it's not on the snake
     // You'll need to implement or use an existing random function
@@ -112,6 +113,37 @@ void updatePosition(void)
     // clearSnakeSegment(prevX, prevY); // Uncomment if you have implemented this function
 }
 
+void collisionWall()
+{
+    // Adjust these values based on your display's dimensions
+    int MAX_X = 128; // Example maximum x-coordinate
+    int MAX_Y = 32;  // Example maximum y-coordinate
+
+    // Check if any part of the snake's head 2x2 segment is out of bounds
+    if (snake[0].x < 0 || snake[0].x + 1 >= MAX_X || // +1 to check the right side of the 2x2 segment
+        snake[0].y < 0 || snake[0].y + 1 >= MAX_Y)   // +1 to check the bottom side of the 2x2 segment
+    {
+        gameover = 1;
+    }
+}
+
+void collisionSelf()
+{
+    int i;
+    for (i = 1; i < snakeLength; i++)
+    {
+        // Check if any part of the snake's head 2x2 segment collides with any part of another segment's 2x2 area
+        if ((snake[0].x == snake[i].x || snake[0].x + 1 == snake[i].x) &&
+                (snake[0].y == snake[i].y || snake[0].y + 1 == snake[i].y) ||
+            (snake[0].x == snake[i].x + 1 && snake[0].y == snake[i].y) ||
+            (snake[0].x == snake[i].x && snake[0].y == snake[i].y + 1))
+        {
+            gameover = 1;
+            break;
+        }
+    }
+}
+
 void displaySnake(void)
 {
     int i;
@@ -131,6 +163,7 @@ void gameloop(void)
         // Handle immediate input here
         // You might use polling or interrupts to check for user input
         // and update the snakeDirection accordingly
+
         handleInput(); // This is a placeholder. Implement this function based on your input method.
 
         // Use the timer for screen updates
@@ -138,6 +171,8 @@ void gameloop(void)
         {
             clear_display(); // Clear the display for the next drawing cycle
             updatePosition();
+            collisionWall();
+            collisionSelf();
             displaySnake();      // Draw the snake at its current position
             updateGameDisplay(); // Optionally, update other parts of the display if needed
             IFSCLR(0) = 0x100;   // Reset the timer flag
