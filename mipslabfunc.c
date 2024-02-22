@@ -423,6 +423,7 @@ void displaySnakeSegment(int x, int y)
   }
 }
 
+/*
 clearSnakeSegment(int x, int y)
 {
   humanarray[y][x] = 0;
@@ -430,6 +431,7 @@ clearSnakeSegment(int x, int y)
   humanarray[y + 1][x] = 0;
   humanarray[y + 1][x + 1] = 0;
 }
+*/
 
 void updateGameDisplay()
 {

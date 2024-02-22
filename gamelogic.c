@@ -50,75 +50,104 @@ void gameinit(void)
     gameover = 0; // Ensure the gameover flag is reset
 }
 
-void updatePosition(void)
+void handleInput(void)
 {
-    // Temporary storage for the previous position
-    int prevX = snake[0].x;
-    int prevY = snake[0].y;
-    int tempX, tempY;
+    int btns = getbtns();
 
-    // Update the head position based on the current direction
-    switch (snakeDirection)
+    if (btns & 0x0)
     {
-    case RIGHT:
-        snake[0].x += 2; // Adjust movement speed as necessary
-        break;
-    case LEFT:
-        snake[0].x -= 2;
-        break;
-    case UP:
-        snake[0].y -= 2;
-        break;
-    case DOWN:
-        snake[0].y += 2;
-        break;
+        snakeDirection = UP;
     }
 
-    int i;
-    // Move the rest of the snake
-    for (i = 1; i < snakeLength; i++)
+    if (btns & 0x1)
     {
-        // Store current segment's position
-        tempX = snake[i].x;
-        tempY = snake[i].y;
-
-        // Shift current segment to previous segment's old position
-        snake[i].x = prevX;
-        snake[i].y = prevY;
-
-        // Update previous position to current segment's old position
-        prevX = tempX;
-        prevY = tempY;
+        snakeDirection = DOWN;
     }
 
-    // Optionally clear the tail segment from the display
-    clearSnakeSegment(prevX, prevY); // Uncomment if you have implemented this function
-}
-
-void displaySnake(void)
-{
-    int i;
-    for (i = 0; i < snakeLength; i++)
+    if (btns & 0x2)
     {
-        displaySnakeSegment(snake[i].x, snake[i].y);
+        snakeDirection = RIGHT;
     }
-}
 
-void gameloop(void)
-{
-    gameinit();
-
-    while (!gameover)
+    if (btns & 0x4)
     {
-        // Implement game logic here:
-        // - Move the snake based on the current direction
-        // - Check for collisions with the walls or itself
-        // - Check if the fruit is eaten
-        // - Possibly update the display, depending on your platform capabilities
-        // - Implement input handling to change the snake's direction
-        displaySnake();
-        updatePosition();
-        updateGameDisplay();
-        delay(300);
+        snakeDirection = LEFT;
     }
-}
+
+    void updatePosition(void)
+    {
+        // Temporary storage for the previous position
+        int prevX = snake[0].x;
+        int prevY = snake[0].y;
+        int tempX, tempY;
+
+        // Update the head position based on the current direction
+        switch (snakeDirection)
+        {
+        case RIGHT:
+            snake[0].x += 2; // Adjust movement speed as necessary
+            break;
+        case LEFT:
+            snake[0].x -= 2;
+            break;
+        case UP:
+            snake[0].y -= 2;
+            break;
+        case DOWN:
+            snake[0].y += 2;
+            break;
+        }
+
+        int i;
+        // Move the rest of the snake
+        for (i = 1; i < snakeLength; i++)
+        {
+            // Store current segment's position
+            tempX = snake[i].x;
+            tempY = snake[i].y;
+
+            // Shift current segment to previous segment's old position
+            snake[i].x = prevX;
+            snake[i].y = prevY;
+
+            // Update previous position to current segment's old position
+            prevX = tempX;
+            prevY = tempY;
+        }
+
+        // Optionally clear the tail segment from the display
+        // clearSnakeSegment(prevX, prevY); // Uncomment if you have implemented this function
+    }
+
+    void displaySnake(void)
+    {
+        int i;
+        for (i = 0; i < snakeLength; i++)
+        {
+            displaySnakeSegment(snake[i].x, snake[i].y);
+        }
+    }
+
+    void gameloop(void)
+    {
+        gameinit();
+
+        while (!gameover)
+        {
+
+            // Handle immediate input here
+            // You might use polling or interrupts to check for user input
+            // and update the snakeDirection accordingly
+            handleInput(); // This is a placeholder. Implement this function based on your input method.
+
+            // Use the timer for screen updates
+            if (IFS(0) & 0x100)
+            {
+                updatePosition();
+                clear_display(); // Clear the display for the next drawing cycle
+                displaySnake();  // Draw the snake at its current position
+                updateGameDisplay(); // Optionally, update other parts of the display if needed
+                IFSCLR(0) = 0x100; // Reset the timer flag
+            }
+        }
+    }
