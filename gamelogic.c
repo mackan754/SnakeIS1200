@@ -153,11 +153,39 @@ void displaySnake(void)
     }
 }
 
+void displayGameOverScreen()
+{
+    // Clear the display
+    clear_display();
+
+    // Display "Game over" message
+    // Adjust coordinates and font size as needed for your display
+    display_string(0, "Game over noob");
+    display_string(1, "Press btn 2 play again");
+    //display_string(2,"to play again :)");
+    //display_string("Highscore" + snakeLength)
+    display_update();
+    // Wait for a button press to start a new game
+    while (1)
+    {
+        // Poll the buttons or use interrupts to detect button presses
+        int buttonStatus = getbtns();
+
+        // Check if any button is pressed
+        if (buttonStatus)
+        {
+            // Start a new game
+            gameloop(); // Assuming gameloop() restarts the game
+            break;      // Exit the loop after starting a new game
+        }
+    }
+}
+
 void gameloop(void)
 {
     gameinit();
 
-    while (!gameover)
+    while (1)
     {
 
         // Handle immediate input here
@@ -175,7 +203,16 @@ void gameloop(void)
             collisionSelf();
             displaySnake();      // Draw the snake at its current position
             updateGameDisplay(); // Optionally, update other parts of the display if needed
-            IFSCLR(0) = 0x100;   // Reset the timer flag
+
+            if (gameover)
+            {
+                // Display "Game over" screen
+                displayGameOverScreen();
+
+                break; // Exit the loop
+            }
+
+            IFSCLR(0) = 0x100; // Reset the timer flag
         }
     }
 }
