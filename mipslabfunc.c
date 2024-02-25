@@ -26,8 +26,8 @@ static void num32asc(char *s, int);
 // const int MAX_WIDTH = 128;
 // const int MAX_HEIGHT = 32;
 // const int PAGE_HEIGHT = 8;
-uint8_t humanarray[32][128];
-uint8_t computerarray[512];
+uint8_t simplearray[32][128];
+uint8_t systemarray[512];
 char textbuffer[4][16];
 
 // extern uint8_t displayBuffer[];
@@ -369,13 +369,13 @@ void clear_display()
   {
     for (allcolumns = 0; allcolumns < 128; allcolumns++)
     {
-      humanarray[allrows][allcolumns] = 0;
+      simplearray[allrows][allcolumns] = 0;
     }
   }
 
   for (i = 0; i < 512; i++)
   {
-    computerarray[i] = 0;
+    systemarray[i] = 0;
   }
 }
 
@@ -399,13 +399,13 @@ void mapping()
       for (row = 0; row < 8; row++)
       {
 
-        if (humanarray[8 * page + row][column])
+        if (simplearray[8 * page + row][column])
         {
           pixelnumber |= binaryposition;
         }
         binaryposition <<= 1;
       }
-      computerarray[column + page * 128] = pixelnumber;
+      systemarray[column + page * 128] = pixelnumber;
     }
   }
 }
@@ -416,25 +416,15 @@ void displaySnakeSegment(int x, int y)
   if (x >= 0 && x <= 126 && y >= 0 && y <= 30)
   {
     // Set the pixels for the 2x2 segment to 1 (on)
-    humanarray[y][x] = 1;
-    humanarray[y][x + 1] = 1;
-    humanarray[y + 1][x] = 1;
-    humanarray[y + 1][x + 1] = 1;
+    simplearray[y][x] = 1;
+    simplearray[y][x + 1] = 1;
+    simplearray[y + 1][x] = 1;
+    simplearray[y + 1][x + 1] = 1;
   }
 }
-
-/*
-clearSnakeSegment(int x, int y)
-{
-  humanarray[y][x] = 0;
-  humanarray[y][x + 1] = 0;
-  humanarray[y + 1][x] = 0;
-  humanarray[y + 1][x + 1] = 0;
-}
-*/
 
 void updateGameDisplay()
 {
   mapping();                       // Update the entire screen's mapping just once
-  display_image(0, computerarray); // Refresh the display only once per game loop
+  display_image(0, systemarray); // Refresh the display only once per game loop
 }

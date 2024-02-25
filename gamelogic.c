@@ -4,6 +4,7 @@
 
 int gameover = 0;
 int snakeLength = 3; // Initial length of the snake
+int growSnake = 0;
 
 // Define a struct for the positions on the game board
 typedef struct
@@ -28,6 +29,48 @@ typedef enum
 
 Direction snakeDirection = RIGHT; // Initial direction
 
+unsigned int generateSimpleRandom(unsigned int seed)
+{
+    static unsigned int randSeed = 0; // Static variable to hold the current seed/state
+
+    if (seed != 0)
+    {
+        randSeed = seed; // Use the provided seed to initialize
+    }
+
+    // Check to ensure randSeed is not zero after initialization; if zero, set to a default value
+    if (randSeed == 0)
+    {
+        randSeed = 123456789; // Default initialization if seed is 0 and no seed has been set before
+    }
+
+    // Linear Congruential Generator (LCG) formula
+    randSeed = randSeed * 1103515245 + 12345;
+    return (randSeed / 65536) % 32768;
+}
+
+void spawnFood()
+{
+    int foodPlaced = 0;
+    while (!foodPlaced)
+    {
+        fruit.x = generateSimpleRandom(0) % 127; // Assuming rand() generates a random number and 128 is your grid width
+        fruit.y = generateSimpleRandom(0) % 31;  // Assuming 32 is your grid height
+
+        int i, isClear = 1;
+        for (i = 0; i < snakeLength; i++)
+        {
+            if (snake[i].x == fruit.x && snake[i].y == fruit.y)
+            {
+                isClear = 0;
+                break;
+            }
+        }
+        if (isClear)
+            foodPlaced = 1;
+    }
+}
+
 void gameinit(void)
 {
     // Declare and initialize the initial position for the snake's head
@@ -35,7 +78,10 @@ void gameinit(void)
     int initialY = 25; // Example initial y-coordinate for the snake's head
     snakeDirection = RIGHT;
 
-    snakeLength = 30; // Set the initial length of the snake to 3 segments
+    snakeLength = 3; // Set the initial length of the snake to 3 segments
+    growSnake = 0;   // Ensure the snake starts without needing to grow
+    generateSimpleRandom(TMR2);
+    spawnFood();     // Place the first piece of food
 
     // Place the fruit in a random position, ensuring it's not on the snake
     // You'll need to implement or use an existing random function
@@ -92,25 +138,52 @@ void updatePosition(void)
         break;
     }
 
-    int i;
-    // Move the rest of the snake
-    for (i = 1; i < snakeLength; i++)
+    if (growSnake && snakeLength < MAX_SNAKE_LENGTH)
     {
-        // Store current segment's position
-        tempX = snake[i].x;
-        tempY = snake[i].y;
+        int i;
+        for (i = 1; i < snakeLength; i++)
+        {
+            tempX = snake[i].x;
+            tempY = snake[i].y;
 
-        // Shift current segment to previous segment's old position
-        snake[i].x = prevX;
-        snake[i].y = prevY;
+            snake[i].x = prevX;
+            snake[i].y = prevY;
 
-        // Update previous position to current segment's old position
-        prevX = tempX;
-        prevY = tempY;
+            prevX = tempX;
+            prevY = tempY;
+        }
+
+        snake[snakeLength].x = prevX;
+        snake[snakeLength].y = prevY;
+        snakeLength++;
+        growSnake = 0; // Reset the flag
+    }
+    else
+    {
+        int i;
+        for (i = 1; i < snakeLength; i++)
+        {
+            tempX = snake[i].x;
+            tempY = snake[i].y;
+
+            snake[i].x = prevX;
+            snake[i].y = prevY;
+
+            prevX = tempX;
+            prevY = tempY;
+        }
     }
 
-    // Optionally clear the tail segment from the display
-    // clearSnakeSegment(prevX, prevY); // Uncomment if you have implemented this function
+    // Check for food consumption with both the snake head and fruit being 2x2 segments
+    // Check if the snake head drives into the food
+    //(snake[0].x == fruit.x || snake[0].x == fruit.x + 1) &&
+      //  (snake[0].y == fruit.y || snake[0].y == fruit.y + 1)
+    if ((snake[0].x < fruit.x + 2 && snake[0].x + 2 > fruit.x) &&
+    (snake[0].y < fruit.y + 2 && snake[0].y + 2 > fruit.y))
+    {
+        growSnake = 1; // Indicate that the snake should grow
+        spawnFood();   // Spawn new food at a different location
+    }
 }
 
 void collisionWall()
@@ -151,6 +224,7 @@ void displaySnake(void)
     {
         displaySnakeSegment(snake[i].x, snake[i].y);
     }
+    displaySnakeSegment(fruit.x, fruit.y); // Display the food
 }
 
 void gameloop(void)
