@@ -59,6 +59,9 @@ int main(void) {
 	
 	labinit(); /* Do any lab-specific initialization */
 
+	display_string(2, "Test");
+	display_update();
+
 	while( 1 )
 	{
 	  //gameloop(); /* Do lab-specific things again and again */

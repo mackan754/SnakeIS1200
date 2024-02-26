@@ -4,7 +4,7 @@
 
 int getsw(void)
 {
-    int switchStatus = (PORTD >> 8) & 0xF; // Shift right by 8 positions and mask with 0x000F to isolate the 4 bits.
+    int switchStatus = (PORTD & 0x0F00) >> 8; // Shift right by 8 positions and mask with 0x000F to isolate the 4 bits.
     return switchStatus;
 }
 
