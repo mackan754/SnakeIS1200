@@ -51,7 +51,7 @@ void gameinit(void)
     gameover = 0; // Ensure the gameover flag is reset
 }
 
-void handleInput(void)
+void handleInput(void) //Hampus
 {
     int buttonStatus = getbtns();
 
@@ -153,7 +153,7 @@ void displaySnake(void)
     }
 }
 
-void displayGameOverScreen()
+void displayGameOverScreen() //Hampus
 {
     // Clear the display
     clear_display();
