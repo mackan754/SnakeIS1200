@@ -8,6 +8,7 @@ int gameover = 0;
 int snakeLength = 3; // Initial length of the snake
 int growSnake = 0;
 int score = 0;
+int highScore = 0;
 
 // Define a struct for the positions on the game board
 typedef struct
@@ -162,6 +163,12 @@ void updatePosition(void)
         snakeLength++;
         growSnake = 0; // Reset the flag
         score++;
+
+        if (score > highScore)
+        {
+            highScore = score;
+        }
+        
     }
     else
     {
@@ -238,12 +245,15 @@ void displayGameOverScreen() // Hampus
     clear_display();
     char *scoreStr;
     scoreStr = itoaconv(score);
+    char *highScoreStr;
+    highScoreStr = itoaconv(highScore);
 
     // Display "Game over" message
     // Adjust coordinates and font size as needed for your display
-    display_string(0, "Game over");
-    display_string(1, "Score: ");
-    display_string(2, scoreStr);
+    display_string(0, "Score: ");
+    display_string(1, scoreStr);
+    display_string(2, "Highscore: ");
+    display_string(3, highScoreStr);
     // display_string(2,"to play again :)");
     // display_string("Highscore" + snakeLength)
     display_update();
