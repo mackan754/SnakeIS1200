@@ -59,10 +59,9 @@ int main(void) {
 	
 	labinit(); /* Do any lab-specific initialization */
 	display_string(0, "    Snake    ");
-	display_string(1, "  Start Menu");
-	display_string(2, "    Easy");
-	display_string(3, "    Hard");
-	display_string(4, "    AI");
+	display_string(1, "    1.Easy");
+	display_string(2, "    2.Hard");
+	display_string(3, "    3.AI");
 	display_update();
 
 	while( 1 )
