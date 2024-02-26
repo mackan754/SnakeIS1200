@@ -5,6 +5,7 @@
 int gameover = 0;
 int snakeLength = 3; // Initial length of the snake
 int growSnake = 0;
+int score = 0;
 
 // Define a struct for the positions on the game board
 typedef struct
@@ -157,6 +158,7 @@ void updatePosition(void)
         snake[snakeLength].y = prevY;
         snakeLength++;
         growSnake = 0; // Reset the flag
+        score++;
     }
     else
     {
