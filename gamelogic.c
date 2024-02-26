@@ -2,6 +2,8 @@
 #include <pic32mx.h> /* Declarations of system-specific addresses etc */
 #include "mipslab.h" /* Declarations for these labs */
 
+void gameloop(void);
+
 int gameover = 0;
 int snakeLength = 3; // Initial length of the snake
 int growSnake = 0;
@@ -81,8 +83,9 @@ void gameinit(void)
 
     snakeLength = 3; // Set the initial length of the snake to 3 segments
     growSnake = 0;   // Ensure the snake starts without needing to grow
+    score = 0;
     generateSimpleRandom(TMR2);
-    spawnFood();     // Place the first piece of food
+    spawnFood(); // Place the first piece of food
 
     // Place the fruit in a random position, ensuring it's not on the snake
     // You'll need to implement or use an existing random function
@@ -179,9 +182,9 @@ void updatePosition(void)
     // Check for food consumption with both the snake head and fruit being 2x2 segments
     // Check if the snake head drives into the food
     //(snake[0].x == fruit.x || snake[0].x == fruit.x + 1) &&
-      //  (snake[0].y == fruit.y || snake[0].y == fruit.y + 1)
+    //  (snake[0].y == fruit.y || snake[0].y == fruit.y + 1)
     if ((snake[0].x < fruit.x + 2 && snake[0].x + 2 > fruit.x) &&
-    (snake[0].y < fruit.y + 2 && snake[0].y + 2 > fruit.y))
+        (snake[0].y < fruit.y + 2 && snake[0].y + 2 > fruit.y))
     {
         growSnake = 1; // Indicate that the snake should grow
         spawnFood();   // Spawn new food at a different location
@@ -229,6 +232,37 @@ void displaySnake(void)
     displaySnakeSegment(fruit.x, fruit.y); // Display the food
 }
 
+void displayGameOverScreen() // Hampus
+{
+    // Clear the display
+    clear_display();
+    char *scoreStr;
+    scoreStr = itoaconv(score);
+
+    // Display "Game over" message
+    // Adjust coordinates and font size as needed for your display
+    display_string(0, "Game over");
+    display_string(1, "Score: ");
+    display_string(2, scoreStr);
+    // display_string(2,"to play again :)");
+    // display_string("Highscore" + snakeLength)
+    display_update();
+    // Wait for a button press to start a new game
+    while (1)
+    {
+        // Poll the buttons or use interrupts to detect button presses
+        int buttonStatus = getbtns();
+
+        // Check if any button is pressed
+        if (buttonStatus & 0x1)
+        {
+            // Start a new game
+            gameloop(); // Assuming gameloop() restarts the game
+            break;      // Exit the loop after starting a new game
+        }
+    }
+}
+
 void gameloop(void)
 {
     gameinit();
@@ -251,6 +285,12 @@ void gameloop(void)
             collisionSelf();
             displaySnake();      // Draw the snake at its current position
             updateGameDisplay(); // Optionally, update other parts of the display if needed
+
+            if (gameover)
+            {
+                displayGameOverScreen();
+            }
+            
             IFSCLR(0) = 0x100;   // Reset the timer flag
         }
     }
