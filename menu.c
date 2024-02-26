@@ -12,7 +12,7 @@ void menu(void)
     }
     else if (sw & 0x04) // If the second switch is ON
     {
-        gameloop();
+        gameloopHard();
     }
     
 }

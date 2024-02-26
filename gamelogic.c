@@ -9,6 +9,7 @@ int snakeLength = 3; // Initial length of the snake
 int growSnake = 0;
 int score = 0;
 int highScore = 0;
+int timeoutcount = 0;
 
 // Define a struct for the positions on the game board
 typedef struct
@@ -87,6 +88,7 @@ void gameinit(void)
     score = 0;
     generateSimpleRandom(TMR2);
     spawnFood(); // Place the first piece of food
+    timeoutcount = 0;
 
     // Place the fruit in a random position, ensuring it's not on the snake
     // You'll need to implement or use an existing random function
@@ -168,7 +170,6 @@ void updatePosition(void)
         {
             highScore = score;
         }
-        
     }
     else
     {
@@ -279,7 +280,45 @@ void gameloop(void)
 
     while (!gameover)
     {
+        // Handle immediate input here
+        // You might use polling or interrupts to check for user input
+        // and update the snakeDirection accordingly
+        handleInput(); // This is a placeholder. Implement this function based on your input method.
 
+        // Use the timer for screen updates
+        if (IFS(0) & 0x100)
+        {
+            if (timeoutcount == 10000)
+            {
+                clear_display(); // Clear the display for the next drawing cycle
+                updatePosition();
+                collisionWall();
+                collisionSelf();
+                displaySnake();      // Draw the snake at its current position
+                updateGameDisplay(); // Optionally, update other parts of the display if needed
+
+                if (gameover)
+                {
+                    displayGameOverScreen();
+                }
+
+                IFSCLR(0) = 0x100; // Reset the timer flag
+                timeoutcount = 0;  // Reset the timeout count
+            }
+            else
+            {
+                timeoutcount++; // Increment the timeout count
+            }
+        }
+    }
+}
+
+void gameloopHard(void)
+{
+    gameinit();
+
+    while (!gameover)
+    {
         // Handle immediate input here
         // You might use polling or interrupts to check for user input
         // and update the snakeDirection accordingly
@@ -300,8 +339,8 @@ void gameloop(void)
             {
                 displayGameOverScreen();
             }
-            
-            IFSCLR(0) = 0x100;   // Reset the timer flag
+
+            IFSCLR(0) = 0x100; // Reset the timer flag
         }
     }
 }
