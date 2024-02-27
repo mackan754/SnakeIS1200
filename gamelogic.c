@@ -21,6 +21,7 @@ typedef struct
 #define MAX_SNAKE_LENGTH 1024 // Adjust based on your display/grid size
 Position snake[MAX_SNAKE_LENGTH];
 Position fruit;
+Position enemy;
 
 // Define an enum for the snake's direction
 typedef enum
@@ -53,9 +54,10 @@ unsigned int generateSimpleRandom(unsigned int seed)
     return (randSeed / 65536) % 32768;
 }
 
-void spawnFood()
+void spawnFood(void)
 {
     int foodPlaced = 0;
+
     while (!foodPlaced)
     {
         fruit.x = generateSimpleRandom(0) % 127; // Assuming rand() generates a random number and 128 is your grid width
@@ -72,6 +74,29 @@ void spawnFood()
         }
         if (isClear)
             foodPlaced = 1;
+    }
+}
+
+void spawnEnemy(void) //Spawn an enemy as an plus sign (plus sign is made in func file)
+{
+    int enemyPlaced = 0;
+
+    while (!enemyPlaced)
+    {
+        enemy.x = (generateSimpleRandom(0)) % 127; // Assuming rand() generates a random number and 128 is your grid width
+        enemy.y = (generateSimpleRandom(0)) % 31;  // Assuming 32 is your grid height
+
+        int i, isClear = 1;
+        for (i = 0; i < snakeLength; i++)
+        {
+            if (snake[i].x == enemy.x && snake[i].y == enemy.y)
+            {
+                isClear = 0;
+                break;
+            }
+        }
+        if (isClear)
+            enemyPlaced = 1;
     }
 }
 
@@ -168,7 +193,6 @@ void updatePosition(void)
         {
             highScore = score;
         }
-        
     }
     else
     {
@@ -237,6 +261,7 @@ void displaySnake(void)
         displaySnakeSegment(snake[i].x, snake[i].y);
     }
     displaySnakeSegment(fruit.x, fruit.y); // Display the food
+    displayEnemy(enemy.x, enemy.y); //Display the enemy
 }
 
 void displayGameOverScreen() // Hampus
@@ -300,8 +325,42 @@ void gameloop(void)
             {
                 displayGameOverScreen();
             }
-            
-            IFSCLR(0) = 0x100;   // Reset the timer flag
+
+            IFSCLR(0) = 0x100; // Reset the timer flag
+        }
+    }
+}
+
+void gameloophard(void)
+{
+    gameinit();
+    spawnEnemy();
+
+    while (!gameover)
+    {
+
+        // Handle immediate input here
+        // You might use polling or interrupts to check for user input
+        // and update the snakeDirection accordingly
+
+        handleInput(); // This is a placeholder. Implement this function based on your input method.
+
+        // Use the timer for screen updates
+        if (IFS(0) & 0x100)
+        {
+            clear_display(); // Clear the display for the next drawing cycle
+            updatePosition();
+            collisionWall();
+            collisionSelf();
+            displaySnake();      // Draw the snake at its current position
+            updateGameDisplay(); // Optionally, update other parts of the display if needed
+
+            if (gameover)
+            {
+                displayGameOverScreen();
+            }
+
+            IFSCLR(0) = 0x100; // Reset the timer flag
         }
     }
 }

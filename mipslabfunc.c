@@ -423,6 +423,29 @@ void displaySnakeSegment(int x, int y)
   }
 }
 
+
+void displayEnemy(int x, int y)
+{
+  // Ensure the coordinates for the snake segment are within the display bounds
+  if (x >= 0 && x <= 126 && y >= 0 && y <= 30)
+  {
+    // Set the pixels for the 2x2 segment to 1 (on)
+    simplearray[y][x] = 1;
+    simplearray[y][x+1] = 1;
+    simplearray[y][x+2] = 1;
+    simplearray[y][x+3] = 1;
+    simplearray[y][x-1] = 1;
+    simplearray[y][x-2] = 1;
+    simplearray[y][x-3] = 1;
+    simplearray[y+1][x] = 1;
+    simplearray[y+2][x] = 1;
+    simplearray[y+3][x] = 1;
+    simplearray[y-1][x] = 1;
+    simplearray[y-2][x] = 1;
+    simplearray[y-3][x] = 1;
+  }
+}
+
 void updateGameDisplay()
 {
   mapping();                       // Update the entire screen's mapping just once
