@@ -2,6 +2,7 @@
 #include <pic32mx.h> /* Declarations of system-specific addresses etc */
 #include "mipslab.h" /* Declarations for these labs */
 
+extern int gamemode;
 void gameloop(void);
 
 int gameover = 0;
@@ -19,6 +20,8 @@ typedef struct
 
 // Define the snake array and fruit position
 #define MAX_SNAKE_LENGTH 1024 // Adjust based on your display/grid size
+#define MAX_ENEMIES 3
+Position enemies[MAX_ENEMIES]; // Update to use an array of positions
 Position snake[MAX_SNAKE_LENGTH];
 Position fruit;
 Position enemy;
@@ -57,13 +60,13 @@ unsigned int generateSimpleRandom(unsigned int seed)
 void spawnFood(void)
 {
     int foodPlaced = 0;
-
     while (!foodPlaced)
     {
-        fruit.x = generateSimpleRandom(0) % 127; // Assuming rand() generates a random number and 128 is your grid width
-        fruit.y = generateSimpleRandom(0) % 31;  // Assuming 32 is your grid height
+        fruit.x = generateSimpleRandom(0) % 127; // Adjusted for 2x2 food
+        fruit.y = generateSimpleRandom(0) % 31;  // Adjusted for 2x2 food
 
         int i, isClear = 1;
+        // Check collision with snake
         for (i = 0; i < snakeLength; i++)
         {
             if (snake[i].x == fruit.x && snake[i].y == fruit.y)
@@ -72,31 +75,83 @@ void spawnFood(void)
                 break;
             }
         }
+
+        // Check collision with enemies
+        for (i = 0; i < MAX_ENEMIES && isClear; i++)
+        {
+            // For each part of the 2x2 food, check if it's within the 7x7 area of the enemy
+            int fx;
+            for (fx = fruit.x; fx <= fruit.x + 1 && isClear; fx++)
+            {
+                int fy;
+                for (fy = fruit.y; fy <= fruit.y + 1 && isClear; fy++)
+                {
+                    // Check if within the plus shape of the enemy (3 units from center)
+                    if (fx >= enemies[i].x - 3 && fx <= enemies[i].x + 3 &&
+                        fy >= enemies[i].y - 3 && fy <= enemies[i].y + 3)
+                    {
+                        // Additional logic to specifically exclude positions that are not part of the plus shape
+                        // assuming plus shape means there's a center line horizontally and vertically
+                        if (fx == enemies[i].x || fy == enemies[i].y ||                                 // directly aligns with the plus shape
+                            (fy >= enemies[i].y - 3 && fy <= enemies[i].y + 3 && fx == enemies[i].x) || // vertical part of plus
+                            (fx >= enemies[i].x - 3 && fx <= enemies[i].x + 3 && fy == enemies[i].y))
+                        { // horizontal part of plus
+                            isClear = 0;
+                        }
+                    }
+                }
+            }
+        }
+
         if (isClear)
+        {
             foodPlaced = 1;
+        }
     }
 }
 
-void spawnEnemy(void) //Spawn an enemy as an plus sign (plus sign is made in func file)
+void spawnEnemy(void)
 {
-    int enemyPlaced = 0;
-
-    while (!enemyPlaced)
+    int e;
+    for (e = 0; e < MAX_ENEMIES; e++)
     {
-        enemy.x = (generateSimpleRandom(0)) % 127; // Assuming rand() generates a random number and 128 is your grid width
-        enemy.y = (generateSimpleRandom(0)) % 31;  // Assuming 32 is your grid height
-
-        int i, isClear = 1;
-        for (i = 0; i < snakeLength; i++)
+        int enemyPlaced = 0;
+        while (!enemyPlaced)
         {
-            if (snake[i].x == enemy.x && snake[i].y == enemy.y)
+            enemies[e].x = 3 + (generateSimpleRandom(0) % (124 - 3));
+            enemies[e].y = 3 + (generateSimpleRandom(0) % (28 - 3));
+
+            int i, isClear = 1;
+            // Check collision with snake
+            for (i = 0; i < snakeLength; i++)
+            {
+                if (snake[i].x == enemies[e].x && snake[i].y == enemies[e].y)
+                {
+                    isClear = 0;
+                    break;
+                }
+            }
+            // Check collision with fruit
+            if (enemies[e].x == fruit.x && enemies[e].y == fruit.y)
             {
                 isClear = 0;
-                break;
+            }
+            // Check collision with other enemies
+            for (i = 0; i < e; i++)
+            { // Only check already placed enemies
+                // Check if the plus shapes overlap
+                if ((enemies[i].x >= enemies[e].x - 6 && enemies[i].x <= enemies[e].x + 6) &&
+                    (enemies[i].y >= enemies[e].y - 6 && enemies[i].y <= enemies[e].y + 6))
+                {
+                    isClear = 0;
+                    break;
+                }
+            }
+            if (isClear)
+            {
+                enemyPlaced = 1;
             }
         }
-        if (isClear)
-            enemyPlaced = 1;
     }
 }
 
@@ -253,6 +308,31 @@ void collisionSelf()
     }
 }
 
+void collisionWithEnemies()
+{
+    int i;
+    for (i = 0; i < MAX_ENEMIES; i++)
+    {
+        // Enemy center coordinates
+        int ex = enemies[i].x;
+        int ey = enemies[i].y;
+
+        // Calculate the extents of the enemy "+" shape
+        int leftX = ex - 3;
+        int rightX = ex + 3;
+        int topY = ey - 3;
+        int bottomY = ey + 3;
+
+        // Check if any part of the snake's head intersects with any part of the enemy's "+" shape
+        if (((snake[0].x <= rightX && snake[0].x + 1 >= leftX) && (snake[0].y == ey)) || // Horizontal part of "+"
+            ((snake[0].y <= bottomY && snake[0].y + 1 >= topY) && (snake[0].x == ex || snake[0].x + 1 == ex)))
+        { // Vertical part of "+"
+            gameover = 1;
+            break;
+        }
+    }
+}
+
 void displaySnake(void)
 {
     int i;
@@ -261,7 +341,15 @@ void displaySnake(void)
         displaySnakeSegment(snake[i].x, snake[i].y);
     }
     displaySnakeSegment(fruit.x, fruit.y); // Display the food
-    displayEnemy(enemy.x, enemy.y); //Display the enemy
+
+    if (gamemode == 1)
+    {
+        int i;
+        for (i = 0; i < MAX_ENEMIES; i++)
+        {
+            displayEnemy(enemies[i].x, enemies[i].y); // Adjusted to display all enemies
+        }
+    }
 }
 
 void displayGameOverScreen() // Hampus
@@ -301,6 +389,10 @@ void displayGameOverScreen() // Hampus
 void gameloop(void)
 {
     gameinit();
+    if (gamemode == 1)
+    {
+        spawnEnemy();
+    }
 
     while (!gameover)
     {
@@ -318,40 +410,11 @@ void gameloop(void)
             updatePosition();
             collisionWall();
             collisionSelf();
-            displaySnake();      // Draw the snake at its current position
-            updateGameDisplay(); // Optionally, update other parts of the display if needed
-
-            if (gameover)
+            if (gamemode == 1)
             {
-                displayGameOverScreen();
+                collisionWithEnemies();
             }
 
-            IFSCLR(0) = 0x100; // Reset the timer flag
-        }
-    }
-}
-
-void gameloophard(void)
-{
-    gameinit();
-    spawnEnemy();
-
-    while (!gameover)
-    {
-
-        // Handle immediate input here
-        // You might use polling or interrupts to check for user input
-        // and update the snakeDirection accordingly
-
-        handleInput(); // This is a placeholder. Implement this function based on your input method.
-
-        // Use the timer for screen updates
-        if (IFS(0) & 0x100)
-        {
-            clear_display(); // Clear the display for the next drawing cycle
-            updatePosition();
-            collisionWall();
-            collisionSelf();
             displaySnake();      // Draw the snake at its current position
             updateGameDisplay(); // Optionally, update other parts of the display if needed
 
