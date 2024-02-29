@@ -1,6 +1,7 @@
 /* mipslabfunc.c
    This file written 2015 by F Lundevall
    Some parts are original code written by Axel Isaksson
+   Functions were added by Marcus Jansson and Hampus Berglund 2024
 
    For copyright and licensing, see file COPYING */
 
@@ -23,14 +24,9 @@ static void num32asc(char *s, int);
 #define DISPLAY_TURN_OFF_VDD (PORTFSET = 0x40)
 #define DISPLAY_TURN_OFF_VBAT (PORTFSET = 0x20)
 
-// const int MAX_WIDTH = 128;
-// const int MAX_HEIGHT = 32;
-// const int PAGE_HEIGHT = 8;
 uint8_t simplearray[32][128];
 uint8_t systemarray[512];
 char textbuffer[4][16];
-
-// extern uint8_t displayBuffer[];
 
 /* quicksleep:
    A simple function to create a small delay.
@@ -360,9 +356,8 @@ char *itoaconv(int num)
 }
 
 /* Function to set all pixels to 0 */
-void clear_display()
+void clearDisplay()
 {
-  // int score = 0;
   int allrows, allcolumns, i;
 
   for (allrows = 0; allrows < 32; allrows++)
@@ -379,7 +374,7 @@ void clear_display()
   }
 }
 
-/* Function to transform data from human-readable array to computer readable array.
+/* Function to transform data from simplearray to systemarray.
  To transfer data over the SPI */
 void mapping()
 {
@@ -448,6 +443,6 @@ void displayEnemy(int x, int y)
 
 void updateGameDisplay()
 {
-  mapping();                       // Update the entire screen's mapping just once
-  display_image(0, systemarray); // Refresh the display only once per game loop
+  mapping();                       
+  display_image(0, systemarray); 
 }

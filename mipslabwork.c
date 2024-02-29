@@ -8,6 +8,8 @@
 
    This file modified 2017-04-31 by Ture Teknolog
 
+   This file modified 2024 by Marcus Jansson and Hampus Berglund
+
    For copyright and licensing, see file COPYING */
 
 #include <stdint.h>  /* Declarations of uint_32 and the like */
@@ -30,7 +32,7 @@ void labinit(void)
   int start = 0b1;
   int source = 0b0;
   int mode = 0b0;
-  int period = 31250; // Timer period = Clock/(prescaler*frequency) Timer Period= 80 000 000/256*10
+  int period = 31250; // Timer period
 
   T2CON = 0 | start << 15 | mode << 3 | prescaling << 4 | source << 1;
   PR2 = period;

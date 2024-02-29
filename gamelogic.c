@@ -1,32 +1,43 @@
+/* gamelogic.c
+   This file written 2024 by Marcus Jansson and Hampus Berglund
+
+   For copyright and licensing, see file COPYING */
+
+/*
+29/2-2024
+Koden är skriven av Marcus Jansson och Hampus Berglund.
+Den skrevs tillsammans sittandes vid samma dator.
+*/
+
 #include <stdint.h>  /* Declarations of uint_32 and the like */
 #include <pic32mx.h> /* Declarations of system-specific addresses etc */
 #include "mipslab.h" /* Declarations for these labs */
 
-extern int gamemode;
-void gameloop(void);
+#define MAX_SNAKE_LENGTH 1024 // Anger det maximala längden som snaken kan ha.
+#define MAX_ENEMIES 3 // Anger det maximala antalet fiender.
 
-int gameover = 0;
-int snakeLength = 3; // Initial length of the snake
-int growSnake = 0;
-int score = 0;
-int highScore = 0;
+extern int gamemode; // Variabel som anger vilket spelläge vi är i.
+void gameloop(void); // Definierar gameloop.
 
-// Define a struct for the positions on the game board
+int gameover = 0;    // Flagga som indikerar om spelet är över.
+int snakeLength = 3; // Initiala längden på snaken.
+int growSnake = 0;   // Flagga som indikerar om snaken ska växa.
+int score = 0;       // Score
+int highScore = 0;   // Highscore
+
+// Definierar ett struct för positionen på spelplanen.
 typedef struct
 {
     int x;
     int y;
 } Position;
 
-// Define the snake array and fruit position
-#define MAX_SNAKE_LENGTH 1024 // Adjust based on your display/grid size
-#define MAX_ENEMIES 3
-Position enemies[MAX_ENEMIES]; // Update to use an array of positions
+// Definierar array för snake och fiender, samt positionen för frukten.
+Position enemies[MAX_ENEMIES]; 
 Position snake[MAX_SNAKE_LENGTH];
-Position fruit;
-Position enemy;
+Position food;
 
-// Define an enum for the snake's direction
+// Definierar enum för snakens riktning.
 typedef enum
 {
     UP,
@@ -35,56 +46,56 @@ typedef enum
     RIGHT
 } Direction;
 
-Direction snakeDirection = RIGHT; // Initial direction
+Direction snakeDirection = RIGHT; // Riktning för snaken.
 
 unsigned int generateSimpleRandom(unsigned int seed)
 {
-    static unsigned int randSeed = 0; // Static variable to hold the current seed/state
+    static unsigned int randSeed = 0; // Variabel som innehåller våran seed.
 
     if (seed != 0)
     {
-        randSeed = seed; // Use the provided seed to initialize
+        randSeed = seed; // Använd den angivna seeden för att initialisera
     }
 
-    // Check to ensure randSeed is not zero after initialization; if zero, set to a default value
+    // Kontrollera så att randSeed inte är noll efter initialisering; om noll, sätt till ett standardvärde
     if (randSeed == 0)
     {
-        randSeed = 123456789; // Default initialization if seed is 0 and no seed has been set before
+        randSeed = 123456789;
     }
 
-    // Linear Congruential Generator (LCG) formula
+    // Linjär Kongruential Generator (LCG)-formel
     randSeed = randSeed * 1103515245 + 12345;
     return (randSeed / 65536) % 32768;
 }
 
 void spawnFood(void)
 {
-    int foodPlaced = 0;
+    int foodPlaced = 0; //Flagga om maten har placerats
     while (!foodPlaced)
     {
-        fruit.x = generateSimpleRandom(0) % 127; // Adjusted for 2x2 food
-        fruit.y = generateSimpleRandom(0) % 31;  // Adjusted for 2x2 food
+        food.x = generateSimpleRandom(0) % 127; // Justerat för 2x2 mat
+        food.y = generateSimpleRandom(0) % 31;  // Justerat för 2x2 mat
 
         int i, isClear = 1;
-        // Check collision with snake
+        // Kontrollera kollisioner med snaken.
         for (i = 0; i < snakeLength; i++)
         {
-            if (snake[i].x == fruit.x && snake[i].y == fruit.y)
+            if (snake[i].x == food.x && snake[i].y == food.y)
             {
                 isClear = 0;
                 break;
             }
         }
 
-        // Check collision with enemies
+        // Kontrollera kollisoner med enemies.
         for (i = 0; i < MAX_ENEMIES && isClear; i++)
         {
-            // For each part of the 2x2 food, check if it's within the 7x7 area of the enemy
+            // Kontrollera om någon del av maten (2x2) är inom enemies area (7x7).
             int fx;
-            for (fx = fruit.x; fx <= fruit.x + 1 && isClear; fx++)
+            for (fx = food.x; fx <= food.x + 1 && isClear; fx++)
             {
                 int fy;
-                for (fy = fruit.y; fy <= fruit.y + 1 && isClear; fy++)
+                for (fy = food.y; fy <= food.y + 1 && isClear; fy++)
                 {
                     // Check if within the plus shape of the enemy (3 units from center)
                     if (fx >= enemies[i].x - 3 && fx <= enemies[i].x + 3 &&
@@ -122,7 +133,7 @@ void spawnEnemy(void)
             enemies[e].y = 3 + (generateSimpleRandom(0) % (28 - 3));
 
             int i, isClear = 1;
-            // Check collision with snake
+            // Kontrollera kollision med snaken.
             for (i = 0; i < snakeLength; i++)
             {
                 if (snake[i].x == enemies[e].x && snake[i].y == enemies[e].y)
@@ -131,15 +142,15 @@ void spawnEnemy(void)
                     break;
                 }
             }
-            // Check collision with fruit
-            if (enemies[e].x == fruit.x && enemies[e].y == fruit.y)
+            // Kontrollera kollision med maten.
+            if (enemies[e].x == food.x && enemies[e].y == food.y)
             {
                 isClear = 0;
             }
-            // Check collision with other enemies
+            // Kontrollera kollision med andra fiender.
             for (i = 0; i < e; i++)
-            { // Only check already placed enemies
-                // Check if the plus shapes overlap
+            { // Kontrollera endast redan placerade fiender.
+                // Kontrollera om "+" symbolerna överlappar.
                 if ((enemies[i].x >= enemies[e].x - 6 && enemies[i].x <= enemies[e].x + 6) &&
                     (enemies[i].y >= enemies[e].y - 6 && enemies[i].y <= enemies[e].y + 6))
                 {
@@ -157,34 +168,33 @@ void spawnEnemy(void)
 
 void gameinit(void)
 {
-    // Declare and initialize the initial position for the snake's head
-    int initialX = 60; // Example initial x-coordinate for the snake's head
-    int initialY = 25; // Example initial y-coordinate for the snake's head
+    // Ställ in startposition och riktning för snakens huvud.
+    int initialX = 60; 
+    int initialY = 25;
     snakeDirection = RIGHT;
 
-    snakeLength = 3; // Set the initial length of the snake to 3 segments
-    growSnake = 0;   // Ensure the snake starts without needing to grow
-    score = 0;
+    snakeLength = 3; // Ställer in snakens initiala längd.
+    growSnake = 0;   // Säkerställer att snaken inte växer.
+    score = 0; // Nollställer score.
     generateSimpleRandom(TMR2);
-    spawnFood(); // Place the first piece of food
+    spawnFood(); // Placera ut den första maten.
 
-    // Place the fruit in a random position, ensuring it's not on the snake
-    // You'll need to implement or use an existing random function
+    // Skapar snaken.
     int i;
     for (i = 0; i < snakeLength; i++)
     {
-        // Set the initial positions of the snake, making it 3 segments long
-        // If the snake moves to the right, each segment should be to the left of the previous one
         snake[i].x = initialX - (i * 2);
         snake[i].y = initialY;
     }
 
-    gameover = 0; // Ensure the gameover flag is reset
+    gameover = 0; // Nollställer flaggan för gameover.
 }
 
 void handleInput(void)
 {
+    // Input hanteras och knapparna avgör vilken riktning snaken tar.
     int buttonStatus = getbtns();
+    int sw = getsw();
 
     if (buttonStatus & 0x8 && snakeDirection != RIGHT)
         snakeDirection = LEFT;
@@ -196,21 +206,21 @@ void handleInput(void)
         snakeDirection = DOWN;
 
     if (buttonStatus & 0x1 && snakeDirection != LEFT)
-        snakeDirection = RIGHT;
+        snakeDirection = RIGHT;    
 }
 
 void updatePosition(void)
 {
-    // Temporary storage for the previous position
+    // Temporär lagring av föregående position.
     int prevX = snake[0].x;
     int prevY = snake[0].y;
     int tempX, tempY;
 
-    // Update the head position based on the current direction
+    // Uppdatera huvudets position baserat på riktningen.
     switch (snakeDirection)
     {
     case RIGHT:
-        snake[0].x += 2; // Adjust movement speed as necessary
+        snake[0].x += 2;
         break;
     case LEFT:
         snake[0].x -= 2;
@@ -241,14 +251,16 @@ void updatePosition(void)
         snake[snakeLength].x = prevX;
         snake[snakeLength].y = prevY;
         snakeLength++;
-        growSnake = 0; // Reset the flag
+        growSnake = 0; // Nollställer flagga för snakens tillväxt.
         score++;
 
+        // Uppdaterar score
         if (score > highScore)
         {
             highScore = score;
         }
     }
+    // Om snaken inte växer uppdatera bara positionerna.
     else
     {
         int i;
@@ -265,38 +277,34 @@ void updatePosition(void)
         }
     }
 
-    // Check for food consumption with both the snake head and fruit being 2x2 segments
-    // Check if the snake head drives into the food
-    //(snake[0].x == fruit.x || snake[0].x == fruit.x + 1) &&
-    //  (snake[0].y == fruit.y || snake[0].y == fruit.y + 1)
-    if ((snake[0].x < fruit.x + 2 && snake[0].x + 2 > fruit.x) &&
-        (snake[0].y < fruit.y + 2 && snake[0].y + 2 > fruit.y))
+    // Kontrollera om snaken kör in i maten med någon del av huvudet(2x2).
+    if ((snake[0].x < food.x + 2 && snake[0].x + 2 > food.x) &&
+        (snake[0].y < food.y + 2 && snake[0].y + 2 > food.y))
     {
-        growSnake = 1; // Indicate that the snake should grow
-        spawnFood();   // Spawn new food at a different location
+        growSnake = 1; // Flagga att snaken ska växa.
+        spawnFood();   // Placera maten på en ny position.
     }
 }
 
-void collisionWall()
+void collisionWall(void)
 {
-    // Adjust these values based on your display's dimensions
-    int MAX_X = 128; // Example maximum x-coordinate
-    int MAX_Y = 32;  // Example maximum y-coordinate
+    int MAX_X = 128; // Maximala x-kordinat.
+    int MAX_Y = 32;  // Maximala y-kordinat.
 
-    // Check if any part of the snake's head 2x2 segment is out of bounds
-    if (snake[0].x < 0 || snake[0].x + 1 >= MAX_X || // +1 to check the right side of the 2x2 segment
-        snake[0].y < 0 || snake[0].y + 1 >= MAX_Y)   // +1 to check the bottom side of the 2x2 segment
+    // Kontrollera om någon del av snakens huvud är utanför gränsen av skärmen.
+    if (snake[0].x < 0 || snake[0].x + 1 >= MAX_X || 
+        snake[0].y < 0 || snake[0].y + 1 >= MAX_Y) 
     {
         gameover = 1;
     }
 }
 
-void collisionSelf()
+void collisionSelf(void)
 {
     int i;
     for (i = 1; i < snakeLength; i++)
     {
-        // Check if any part of the snake's head 2x2 segment collides with any part of another segment's 2x2 area
+        // Kontrollera om någon del av sankens huvud kolliderar med något annat segment.
         if ((snake[0].x == snake[i].x || snake[0].x + 1 == snake[i].x) &&
                 (snake[0].y == snake[i].y || snake[0].y + 1 == snake[i].y) ||
             (snake[0].x == snake[i].x + 1 && snake[0].y == snake[i].y) ||
@@ -308,25 +316,25 @@ void collisionSelf()
     }
 }
 
-void collisionWithEnemies()
+void collisionWithEnemies(void)
 {
     int i;
     for (i = 0; i < MAX_ENEMIES; i++)
     {
-        // Enemy center coordinates
+        // Mittpunkten av fienden.
         int ex = enemies[i].x;
         int ey = enemies[i].y;
 
-        // Calculate the extents of the enemy "+" shape
+        // Beräkna gränserna för "+" symbolen.
         int leftX = ex - 3;
         int rightX = ex + 3;
         int topY = ey - 3;
         int bottomY = ey + 3;
 
-        // Check if any part of the snake's head intersects with any part of the enemy's "+" shape
-        if (((snake[0].x <= rightX && snake[0].x + 1 >= leftX) && (snake[0].y == ey)) || // Horizontal part of "+"
+        // Kontrollera om någon del av snakens huvud korsar någon del av fiendens "+" symbol.
+        if (((snake[0].x <= rightX && snake[0].x + 1 >= leftX) && (snake[0].y == ey)) ||
             ((snake[0].y <= bottomY && snake[0].y + 1 >= topY) && (snake[0].x == ex || snake[0].x + 1 == ex)))
-        { // Vertical part of "+"
+        {
             gameover = 1;
             break;
         }
@@ -335,95 +343,89 @@ void collisionWithEnemies()
 
 void displaySnake(void)
 {
+    // Visa varje segment av snaken på skärmen.
     int i;
     for (i = 0; i < snakeLength; i++)
     {
         displaySnakeSegment(snake[i].x, snake[i].y);
     }
-    displaySnakeSegment(fruit.x, fruit.y); // Display the food
+    displaySnakeSegment(food.x, food.y); // Visar maten på skärmen.
 
     if (gamemode == 1)
     {
         int i;
         for (i = 0; i < MAX_ENEMIES; i++)
         {
-            displayEnemy(enemies[i].x, enemies[i].y); // Adjusted to display all enemies
+            displayEnemy(enemies[i].x, enemies[i].y); // Visar alla fiender på skärmen.
         }
     }
 }
 
-void displayGameOverScreen() // Hampus
+void displayGameOverScreen(void) 
 {
-    // Clear the display
-    clear_display();
+    // Rensar skärmen och visar score.
+    clearDisplay();
     char *scoreStr;
     scoreStr = itoaconv(score);
     char *highScoreStr;
     highScoreStr = itoaconv(highScore);
 
-    // Display "Game over" message
-    // Adjust coordinates and font size as needed for your display
     display_string(0, "Score: ");
     display_string(1, scoreStr);
     display_string(2, "Highscore: ");
     display_string(3, highScoreStr);
-    // display_string(2,"to play again :)");
-    // display_string("Highscore" + snakeLength)
+
     display_update();
-    // Wait for a button press to start a new game
+    quicksleep(2000000);
+
+    // Väntar på knapptryck för att starta nytt spel.
     while (1)
     {
-        // Poll the buttons or use interrupts to detect button presses
         int buttonStatus = getbtns();
 
-        // Check if any button is pressed
+        // Kontrollera om högerknappen är nedtryckt.
         if (buttonStatus & 0x1)
         {
-            // Start a new game
-            gameloop(); // Assuming gameloop() restarts the game
-            break;      // Exit the loop after starting a new game
+            gameloop(); // Kör gameloop() och startar ett nytt spel.
+            break;     
         }
     }
 }
 
+// Loop som driver hela spelet och anropas från menu.c
 void gameloop(void)
 {
-    gameinit();
-    if (gamemode == 1)
+    gameinit(); // Förbered spelet
+    if (gamemode == 1) // Om gamemode är hard, skapa fiender
     {
         spawnEnemy();
     }
 
-    while (!gameover)
+    while (!gameover) // Så länge spelet inte är över.
     {
+        handleInput(); // Användarens input kontrolleras konstant.
 
-        // Handle immediate input here
-        // You might use polling or interrupts to check for user input
-        // and update the snakeDirection accordingly
-
-        handleInput(); // This is a placeholder. Implement this function based on your input method.
-
-        // Use the timer for screen updates
+        // Timern används för att uppdatera skärmen och spellogiken.
         if (IFS(0) & 0x100)
         {
-            clear_display(); // Clear the display for the next drawing cycle
-            updatePosition();
-            collisionWall();
-            collisionSelf();
+            clearDisplay(); // Rensa skärmen i förberedelse för nästa uppdatering.
+            updatePosition(); // Uppdatera snakens position.
+            collisionWall(); // Kontrollera om snaken kolliderar med en vägg.
+            collisionSelf(); // Kontrollera om snaken kolliderar med sig själv.
             if (gamemode == 1)
             {
-                collisionWithEnemies();
+                collisionWithEnemies(); // Om gamemode är hard kontrollera kollisioner med fiender.
             }
 
-            displaySnake();      // Draw the snake at its current position
-            updateGameDisplay(); // Optionally, update other parts of the display if needed
+            displaySnake();      // Rita snaken vid sin nuvarande position.
+            updateGameDisplay(); // Uppdatera skärmen så den syns på skärmen.
 
             if (gameover)
             {
-                displayGameOverScreen();
+                displayGameOverScreen(); // Spelet är slut.
             }
 
-            IFSCLR(0) = 0x100; // Reset the timer flag
+            IFSCLR(0) = 0x100; // Nollställ timer flagga.
         }
     }
 }
